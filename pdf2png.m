@@ -3,7 +3,7 @@
 #import <CoreGraphics/CoreGraphics.h>
 #import <ImageIO/ImageIO.h>
 
-#define PDF2PNG_VERSION "1.1.2"
+#define PDF2PNG_VERSION "1.1.3"
 
 /*
     http://stackoverflow.com/questions/17507170/how-to-save-png-file-from-nsimage-retina-issues
@@ -49,7 +49,7 @@
     if (scaledSize.width != outputSizePx.width) {
         NSLog(@"WARNING scaledSize: %@ != outputSizePx %@", NSStringFromSize(scaledSize), NSStringFromSize(outputSizePx));
     }
-    
+
     // setup the destination
     CGImageDestinationRef destination = CGImageDestinationCreateWithURL((__bridge CFURLRef)(URL), kUTTypePNG, 1, NULL);
     CFDictionaryRef destinationOptions = CFBridgingRetain(@{ (id)kCGImagePropertyHasAlpha: @(alpha) });
@@ -92,7 +92,7 @@ int main(int argc, const char * argv[]) {
     @autoreleasepool {
         NSDictionary* args = [NSUserDefaults.standardUserDefaults volatileDomainForName:NSArgumentDomain];
 //        NSLog(@"args: %@", args);
-        
+
         NSString* inputFileName = [args objectForKey:@"i"];
         NSString* outputFilePrefix = [args objectForKey:@"o"];
         NSString* target = [args objectForKey:@"t"];
@@ -182,7 +182,7 @@ int main(int argc, const char * argv[]) {
             @"messages-icon": @[ // iMessages App Icon
                 @"1024"
             ],
-            
+
             @"messages-settings": @[ // iMessages App Settings Icon
                 @"29@2x", @"29@3x"
             ],
@@ -226,13 +226,13 @@ int main(int argc, const char * argv[]) {
             status = StatusMissingArguments;
             goto exit;
         }
-                
+
         if (![NSFileManager.defaultManager fileExistsAtPath:inputFileName isDirectory:nil]) {
             status = StatusInputFileNotFound;
             NSLog(@"Error %i: input file not found: %@", status, inputFileName);
             goto exit;
         }
-        
+
         // create a target NSImage at each of the specified sizes
         NSImage* icon = [NSImage.alloc initByReferencingFile:inputFileName];
         if (!icon) {
@@ -240,14 +240,14 @@ int main(int argc, const char * argv[]) {
             NSLog(@"Error %i: image did not load from: %@", status, inputFileName);
             goto exit;
         }
-        
+
         // now that we know we can read the check to see if we're writing into an asset catalog
         if (assetCatalog) {
             outputFilePrefix = [[assetCatalog stringByAppendingPathComponent:outputFilePrefix] stringByAppendingPathExtension:@"imageset"];
             NSURL* iamgesetURL = [NSURL fileURLWithPath:outputFilePrefix]; // resolved relative to working directory
             BOOL isDirectory = NO;
             NSError* createError = nil;
-            
+
             if ([NSFileManager.defaultManager fileExistsAtPath:iamgesetURL.path isDirectory:&isDirectory]) {
                 if (!isDirectory) { // strange condtion, exit
                     status = -420;
@@ -263,11 +263,11 @@ int main(int argc, const char * argv[]) {
                 }
             }
         }
-        
+
         if (!outputFilePrefix) { // infer it from the inputFileName if neither -o or -A were specified
             outputFilePrefix = inputFileName.lastPathComponent.stringByDeletingPathExtension;
         }
-        
+
         // write the target NSImage to the output-file-prefix specified
         for (NSString* sizeString in outputSizes) {
             BOOL isRetina = NO;
@@ -329,7 +329,7 @@ int main(int argc, const char * argv[]) {
                 pointSize = NSMakeSize(size, size);
                 outputSize = NSMakeSize(size, size);
             }
-            
+
             if (outputSize.width < 1 || outputSize.height < 1 // proposed image is less than 1x1
              || outputSize.width > 10000 || outputSize.height > 10000) { // proposed image is larger than any current display
                 status = StatusOutputSizeInvalid;
@@ -338,39 +338,40 @@ int main(int argc, const char * argv[]) {
             }
 
             NSError* error = nil;
-            NSString* outputFileName = nil;
+            NSMutableString* outputFileName = NSMutableString.new;
             if (isRetina) {
-                outputFileName = outputFilePrefix;
+                [outputFileName appendString:outputFilePrefix];
             }
             else {
-                outputFileName = [NSString stringWithFormat:@"%@_%.0fx%.0f", outputFilePrefix, pointSize.width, pointSize.height];
+                [outputFileName appendString:[NSString stringWithFormat:@"%@_%gx%g", outputFilePrefix, pointSize.width, pointSize.height]];
             }
 
             if (retinaSize) { // append the retina tag
-                outputFileName = [outputFileName stringByAppendingString:@"@"];
-                outputFileName = [outputFileName stringByAppendingString:retinaSize];
+                [outputFileName appendString:@"@"];
+                [outputFileName appendString:retinaSize];
             }
-            
-            outputFileName = [outputFileName stringByAppendingPathExtension:@"png"];
+
+            [outputFileName appendString:@".png"]; // not as portable as appendPathExtension maybe?
             [icon writePNGToURL:[NSURL fileURLWithPath:outputFileName] outputSize:outputSize alphaChannel:alphaChannel error:&error];
-            
+
             if (error) {
                 status = StatusOutputWriteError;
                 NSLog(@"Error %i: %@ writing: %@", status, error, outputFileName);
                 goto exit;
             }
 
-            [NSFileHandle.fileHandleWithStandardOutput writeData:[[NSString stringWithFormat:@"pdf2png wrote [%.0f x %.0f] pixels to %@\n",
-                outputSize.width, outputSize.height, outputFileName] dataUsingEncoding:NSUTF8StringEncoding]];
+            NSString* outputSizeString = [NSString stringWithFormat:@"pdf2png wrote [%g x %g] pixels to %@\n",
+                                          outputSize.width, outputSize.height, outputFileName];
+            [NSFileHandle.fileHandleWithStandardOutput writeData:[outputSizeString dataUsingEncoding:NSUTF8StringEncoding]];
         }
-        
-        if (assetCatalog) { // we need to update the plist in the catalog
+
+        if (assetCatalog) { // TODO: update the plist in the catalog
         }
     }
 
     status = StatusSuccess;
 exit:
-    
+
     return status;
 }
 
