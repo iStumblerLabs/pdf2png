@@ -33,7 +33,7 @@ clean-build:
 	rm -fr $(BUILD_DIR)
 
 .PHONY: install
-install:
+install: $(BUILT_PRODUCT)
 	sudo install $(BUILT_PRODUCT) $(INSTALL_PREFIX)
 
 .PHONY: uninstall
