@@ -243,12 +243,15 @@ int main(int argc, const char * argv[]) {
 
         // now that we know we can read the check to see if we're writing into an asset catalog
         if (assetCatalog) {
+            // if we're in an asset catalog we neeed to know if we're looking at an appiconset or imageset
+            // check the catalog for the -o value and find one or the other
+            // if not gound assume 'appiconset' if a -t argument other than 'retina' was given, otherwise `imageset`
             outputFilePrefix = [[assetCatalog stringByAppendingPathComponent:outputFilePrefix] stringByAppendingPathExtension:@"imageset"];
-            NSURL* iamgesetURL = [NSURL fileURLWithPath:outputFilePrefix]; // resolved relative to working directory
+            NSURL* imagesetURL = [NSURL fileURLWithPath:outputFilePrefix]; // resolved relative to working directory
             BOOL isDirectory = NO;
             NSError* createError = nil;
 
-            if ([NSFileManager.defaultManager fileExistsAtPath:iamgesetURL.path isDirectory:&isDirectory]) {
+            if ([NSFileManager.defaultManager fileExistsAtPath:imagesetURL.path isDirectory:&isDirectory]) {
                 if (!isDirectory) { // strange condtion, exit
                     status = -420;
                     NSLog(@"ERROR %i: iamgeset exists but is not a directory: %@", status, outputFilePrefix);
@@ -256,9 +259,9 @@ int main(int argc, const char * argv[]) {
                 }
             }
             else { // need to create the imageset
-                if (![NSFileManager.defaultManager createDirectoryAtPath:iamgesetURL.path withIntermediateDirectories:YES attributes:nil error:&createError]) {
+                if (![NSFileManager.defaultManager createDirectoryAtPath:imagesetURL.path withIntermediateDirectories:YES attributes:nil error:&createError]) {
                     status = -421;
-                    NSLog(@"Error %i: cannot create imageset: %@", status, iamgesetURL.path);
+                    NSLog(@"Error %i: cannot create imageset: %@", status, imagesetURL.path);
                     goto exit;
                 }
             }
