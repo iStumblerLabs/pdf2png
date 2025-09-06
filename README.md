@@ -1,5 +1,9 @@
 # pdf2png
 
+```
+this branch is no longer maintained. use: git@github.com:alfwatt/pdf2png.git
+```
+
 A small command line tool which renders pdf files into png files at various sizes,
 with presets for rendering icons for iOS, MacOS and Android, and the ability to write
 files directly into an xcassets package
